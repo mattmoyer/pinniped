@@ -26,6 +26,7 @@ require (
 	go.pinniped.dev/generated/1.19/apis v0.0.0-00010101000000-000000000000
 	go.pinniped.dev/generated/1.19/client v0.0.0-00010101000000-000000000000
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	gopkg.in/square/go-jose.v2 v2.5.1
