@@ -96,6 +96,7 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       securityContext:
+        readOnlyRootFilesystem: true
         runAsUser: #@ data.values.run_as_user
         runAsGroup: #@ data.values.run_as_group
       serviceAccountName: #@ defaultResourceName()
@@ -122,6 +123,8 @@ spec:
             - --config=/etc/config/pinniped.yaml
             - --downward-api-path=/etc/podinfo
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: config-volume
               mountPath: /etc/config
             - name: podinfo
@@ -145,10 +148,16 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
       volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 100Mi
         - name: config-volume
+          readOnly: true
           configMap:
             name: #@ defaultResourceNameWithSuffix("config")
         - name: podinfo
+          readOnly: true
           downwardAPI:
             items:
               - path: "labels"
