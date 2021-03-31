@@ -26,13 +26,8 @@ RUN \
     ./cmd/pinniped-supervisor/... \
     ./cmd/local-user-authenticator/...
 
-# Use a Debian slim image to grab a reasonable default CA bundle.
-FROM debian:10.9-slim AS get-ca-bundle-env
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/* /var/cache/debconf/*
-
-# Use a runtime image based on Debian slim.
-FROM debian:10.9-slim
-COPY --from=get-ca-bundle-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# Use a distroless runtime image with CA certificates, timezone data, and not much else.
+FROM gcr.io/distroless/static:nonroot@sha256:76c39a6f76890f8f8b026f89e081084bc8c64167d74e6c93da7a053cb4ccb5dd
 
 # Copy the binaries from the build-env stage.
 COPY --from=build-env /work/out/ /usr/local/bin/
