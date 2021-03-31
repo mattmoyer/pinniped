@@ -21,7 +21,7 @@ RUN \
   CGO_ENABLED=0 \
   GOOS=linux \
   GOARCH=amd64 \
-  go build -v -ldflags "$(hack/get-ldflags.sh)" -o out \
+  go build -v -ldflags "$(hack/get-ldflags.sh) -w -s" -o out \
     ./cmd/pinniped-concierge/... \
     ./cmd/pinniped-supervisor/... \
     ./cmd/local-user-authenticator/...
