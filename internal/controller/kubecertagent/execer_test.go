@@ -448,11 +448,11 @@ func TestManagerControllerSync(t *testing.T) {
 
 						r.Equal(agentPodNamespace, fakeExecutor.calledWithPodNamespace[0])
 						r.Equal(agentPodName, fakeExecutor.calledWithPodName[0])
-						r.Equal([]string{"cat", fakeCertPath}, fakeExecutor.calledWithCommandAndArgs[0])
+						r.Equal([]string{"/usr/local/bin/pinniped-concierge", "--cat", fakeCertPath}, fakeExecutor.calledWithCommandAndArgs[0])
 
 						r.Equal(agentPodNamespace, fakeExecutor.calledWithPodNamespace[1])
 						r.Equal(agentPodName, fakeExecutor.calledWithPodName[1])
-						r.Equal([]string{"cat", fakeKeyPath}, fakeExecutor.calledWithCommandAndArgs[1])
+						r.Equal([]string{"/usr/local/bin/pinniped-concierge", "--cat", fakeKeyPath}, fakeExecutor.calledWithCommandAndArgs[1])
 
 						actualCertPEM, actualKeyPEM := dynamicCertProvider.CurrentCertKeyContent()
 						r.Equal(fakeCertPEM, string(actualCertPEM))

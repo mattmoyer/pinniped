@@ -1,9 +1,12 @@
-// Copyright 2020 the Pinniped contributors. All Rights Reserved.
+// Copyright 2020-2021 the Pinniped contributors. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package main
 
 import (
+	"fmt"
+	"io"
+	"math"
 	"os"
 	"time"
 
@@ -17,6 +20,25 @@ import (
 )
 
 func main() {
+	for i := range os.Args {
+		if os.Args[i] == "--sleep" {
+			time.Sleep(time.Duration(math.MaxInt64))
+			return
+		}
+		if os.Args[i] == "--cat" {
+			f, err := os.Open(os.Args[i+1])
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "could not open file: %v", err)
+				os.Exit(1)
+			}
+			if _, err := io.Copy(os.Stdout, f); err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "could not copy from file: %v", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 

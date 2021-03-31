@@ -110,7 +110,7 @@ func (c *execerController) Sync(ctx controllerlib.Context) error {
 		return nil
 	}
 
-	certPEM, err := c.podCommandExecutor.Exec(agentPod.Namespace, agentPod.Name, "cat", certPath)
+	certPEM, err := c.podCommandExecutor.Exec(agentPod.Namespace, agentPod.Name, "/usr/local/bin/pinniped-concierge", "--cat", certPath)
 	if err != nil {
 		strategyResultUpdateErr := issuerconfig.UpdateStrategy(
 			ctx.Context,
@@ -122,7 +122,7 @@ func (c *execerController) Sync(ctx controllerlib.Context) error {
 		return newAggregate(err, strategyResultUpdateErr)
 	}
 
-	keyPEM, err := c.podCommandExecutor.Exec(agentPod.Namespace, agentPod.Name, "cat", keyPath)
+	keyPEM, err := c.podCommandExecutor.Exec(agentPod.Namespace, agentPod.Name, "/usr/local/bin/pinniped-concierge", "--cat", keyPath)
 	if err != nil {
 		strategyResultUpdateErr := issuerconfig.UpdateStrategy(
 			ctx.Context,
