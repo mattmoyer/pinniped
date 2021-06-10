@@ -236,6 +236,8 @@ func newAuthorizeRequest(r *http.Request, w http.ResponseWriter, oauthHelper fos
 		oauthHelper.WriteAuthorizeError(w, authorizeRequester, err)
 		return nil, false
 	}
+	authorizeRequester.SetResponseTypeHandled("query")
+	authorizeRequester.SetResponseTypeHandled("form_post")
 	grantScopes(authorizeRequester)
 	return authorizeRequester, true
 }

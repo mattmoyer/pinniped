@@ -472,6 +472,21 @@ func (h *handlerState) cliBasedAuth(authorizeOptions *[]oauth2.AuthCodeOption) (
 	return token, nil
 }
 
+func supportsResponseModeFormPost(provider *oidc.Provider) bool {
+	var discoveryClaims struct {
+		ResponseModesSupported []string `json:"response_modes_supported""`
+	}
+	if err := provider.Claims(&discoveryClaims); err != nil {
+		return false
+	}
+	for _, mode := range discoveryClaims.ResponseModesSupported {
+		if mode == "form_post" {
+			return true
+		}
+	}
+	return false
+}
+
 // Open a web browser, or ask the user to open a web browser, to visit the authorize endpoint.
 // Create a localhost callback listener which exchanges the authcode for tokens. Return the tokens or an error.
 func (h *handlerState) webBrowserBasedAuth(authorizeOptions *[]oauth2.AuthCodeOption) (*oidctypes.Token, error) {
@@ -486,8 +501,14 @@ func (h *handlerState) webBrowserBasedAuth(authorizeOptions *[]oauth2.AuthCodeOp
 		Path:   h.callbackPath,
 	}).String()
 
+	// If the provider supports it, use response_mode=form_post
+	opts := *authorizeOptions
+	if supportsResponseModeFormPost(h.provider) {
+		opts = append(opts, oauth2.SetAuthURLParam("response_mode", "form_post"))
+	}
+
 	// Now that we have a redirect URL with the listener port, we can build the authorize URL.
-	authorizeURL := h.oauth2Config.AuthCodeURL(h.state.String(), *authorizeOptions...)
+	authorizeURL := h.oauth2Config.AuthCodeURL(h.state.String(), opts...)
 
 	// Start a callback server in a background goroutine.
 	shutdown := h.serve(listener)
@@ -664,13 +685,29 @@ func (h *handlerState) handleAuthCodeCallback(w http.ResponseWriter, r *http.Req
 		}
 	}()
 
-	// Return HTTP 405 for anything that's not a GET.
-	if r.Method != http.MethodGet {
-		return httperr.Newf(http.StatusMethodNotAllowed, "wanted GET")
+	var params url.Values
+	if supportsResponseModeFormPost(h.provider) {
+		// Return HTTP 405 for anything that's not a POST.
+		if r.Method != http.MethodPost {
+			return httperr.Newf(http.StatusMethodNotAllowed, "wanted POST")
+		}
+
+		// Pull the callback parameters from the request body (form-encoded)
+		if err := r.ParseForm(); err != nil {
+			return httperr.New(http.StatusBadRequest, "invalid form")
+		}
+		params = r.Form
+	} else {
+		// Return HTTP 405 for anything that's not a GET.
+		if r.Method != http.MethodGet {
+			return httperr.Newf(http.StatusMethodNotAllowed, "wanted GET")
+		}
+
+		// Pull the callback parameters from the URL query string.
+		params = r.URL.Query()
 	}
 
 	// Validate OAuth2 state and fail if it's incorrect (to block CSRF).
-	params := r.URL.Query()
 	if err := h.state.Validate(params.Get("state")); err != nil {
 		return httperr.New(http.StatusForbidden, "missing or invalid state parameter")
 	}

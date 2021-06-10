@@ -5,6 +5,9 @@
 package oidc
 
 import (
+	"encoding/base64"
+	"html/template"
+	"net/url"
 	"time"
 
 	coreosoidc "github.com/coreos/go-oidc/v3/oidc"
@@ -96,20 +99,6 @@ type UpstreamStateParamData struct {
 	CSRFToken     csrftoken.CSRFToken `json:"c"`
 	PKCECode      pkce.Code           `json:"k"`
 	FormatVersion string              `json:"v"`
-}
-
-func PinnipedCLIOIDCClient() *fosite.DefaultOpenIDConnectClient {
-	return &fosite.DefaultOpenIDConnectClient{
-		DefaultClient: &fosite.DefaultClient{
-			ID:            "pinniped-cli",
-			Public:        true,
-			RedirectURIs:  []string{"http://127.0.0.1/callback"},
-			ResponseTypes: []string{"code"},
-			GrantTypes:    []string{"authorization_code", "refresh_token", "urn:ietf:params:oauth:grant-type:token-exchange"},
-			Scopes:        []string{coreosoidc.ScopeOpenID, coreosoidc.ScopeOfflineAccess, "profile", "email", "pinniped:request-audience"},
-		},
-		TokenEndpointAuthMethod: "none",
-	}
 }
 
 type TimeoutsConfiguration struct {
@@ -231,7 +220,7 @@ func FositeOauth2Helper(
 		MinParameterEntropy: fosite.MinParameterEntropy,
 	}
 
-	return compose.Compose(
+	provider := compose.Compose(
 		oauthConfig,
 		oauthStore,
 		&compose.CommonStrategy{
@@ -247,6 +236,32 @@ func FositeOauth2Helper(
 		compose.OAuth2PKCEFactory,
 		TokenExchangeFactory,
 	)
+
+	provider.(*fosite.Fosite).FormPostHTMLTemplate = template.Must(
+		template.New("form_post").
+			Funcs(template.FuncMap{
+				"pasteableParams": func(params url.Values) string {
+					return base64.RawURLEncoding.EncodeToString([]byte(params.Encode()))
+				},
+			}).
+			Parse(
+				`<html>
+	   <head>
+		  <title>Submit This Form</title>
+	   </head>
+	   <body>
+          <tt>{{pasteableParams .Parameters }}</tt>
+		  <form method="post" action="{{ .RedirURL }}">
+			 {{ range $key,$value := .Parameters }}
+				{{ range $parameter:= $value}}
+				  <input type="hidden" name="{{$key}}" value="{{$parameter}}"/>
+				{{end}}
+			 {{ end }}
+			  <input type="submit" value="Login using these parameters" />
+		  </form>
+	   </body>
+	</html>`))
+	return provider
 }
 
 // FositeErrorForLog generates a list of information about the provided Fosite error that can be

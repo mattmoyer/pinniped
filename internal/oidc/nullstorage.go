@@ -11,6 +11,7 @@ import (
 
 	"go.pinniped.dev/internal/constable"
 	"go.pinniped.dev/internal/fositestoragei"
+	"go.pinniped.dev/internal/oidc/clienttypes"
 )
 
 const errNullStorageNotImplemented = constable.Error("NullStorage does not implement this method. It should not have been called.")
@@ -88,8 +89,8 @@ func (NullStorage) InvalidateAuthorizeCodeSession(_ context.Context, _ string) (
 }
 
 func (NullStorage) GetClient(_ context.Context, id string) (fosite.Client, error) {
-	client := PinnipedCLIOIDCClient()
-	if client.ID == id {
+	client := clienttypes.New()
+	if client.GetID() == id {
 		return client, nil
 	}
 	return nil, fosite.ErrNotFound
